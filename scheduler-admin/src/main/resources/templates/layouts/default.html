@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/web/thymeleaf/layout">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Template title</title>
+
+    <!--&lt;!&ndash; 引入组件库 Vue &ndash;&gt;-->
+    <!--<script src="https://cdn.bootcss.com/vue/2.4.4/vue.min.js"></script>-->
+
+    <!--&lt;!&ndash; 引入样式、组件库 iview &ndash;&gt;-->
+    <!--<link href="https://cdn.bootcss.com/iview/2.4.0/styles/iview.css" rel="stylesheet">-->
+    <!--<script src="https://cdn.bootcss.com/iview/2.4.0/iview.min.js"></script>-->
+    <!--<script src="https://cdn.bootcss.com/iview/2.4.0/locale/zh-CN.min.js"></script>-->
+
+    <!--&lt;!&ndash; 引入组件库: axios ajax &ndash;&gt;-->
+    <!--<script src="https://cdn.bootcss.com/axios/0.16.2/axios.min.js"></script>-->
+    <!--&lt;!&ndash; 引入组件库: lodash &ndash;&gt;-->
+    <!--<script src="https://cdn.bootcss.com/lodash.js/4.17.4/lodash.min.js"></script>-->
+
+
+    <!-- 引入组件库 Vue -->
+    <script src="/js/vue/2.4.4/vue.min.js"></script>
+
+    <!-- 引入样式、组件库 iview -->
+    <link href="/css/iview/2.4.0/styles/iview.css" rel="stylesheet">
+    <script src="/css/iview/2.4.0/iview.min.js"></script>
+    <script src="/css/iview/2.4.0/locale/zh-CN.min.js"></script>
+
+    <!-- 引入组件库: axios ajax -->
+    <script src="/js/axios/0.16.2/axios.min.js"></script>
+    <!-- 引入组件库: lodash -->
+    <script src="/js/lodash.js/4.17.4/lodash.min.js"></script>
+
+</head>
+
+<body>
+<style>
+
+    #content {
+        margin: 15px 39px 0 39px;
+    }
+
+    .ivu-table-header {
+        font-size: 14px;
+    }
+
+    .ivu-table-body {
+        font-size: 14px;
+    }
+
+    .ivu-tabs {
+        margin: 20px 0 0;
+    }
+
+    .ivu-page {
+        margin: 20px 0 0;
+        border-radius: 3px;
+        float: right;
+        position: relative;
+        padding-left: 40px;
+    }
+
+    [v-cloak] {
+        display: none !important;
+    }
+</style>
+
+
+<div th:replace="fragments/header :: header" v-cloak></div>
+
+<!-- page content -->
+<div layout:fragment="content" id="content"></div>
+
+<div th:replace="fragments/footer :: footer" v-cloak></div>
+
+</body>
+</html>

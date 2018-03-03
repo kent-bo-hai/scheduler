@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:layout="http://www.ultraq.net.nz/web/thymeleaf/layout"
+      layout:decorator="layouts/default">
+
+<head>
+    <title>分析</title>
+</head>
+
+<div layout:fragment="content">
+
+    <div id="analysis">
+        <div class="layout-search">
+            <Auto-Complete
+                    v-model="appName"
+                    :data="appNames"
+                    icon="ios-search"
+                    @on-search="searchSuggest"
+                    @on-change="searchChange"
+                    @on-select="searchSelect"
+                    placeholder="appName、负责人、为空查询全部"
+                    size="large"
+                    clearable="true"
+                    style="width:800px">
+            </Auto-Complete>
+        </div>
+
+        <div class="layout-tabs">
+            <Tabs value="ownerApps">
+                <tab-pane label="负责的服务" name="ownerApps">
+                    <Row type="flex" class="code-row-bg">
+                        <i-table :columns="ownerAppsColumns" :data="ownerAppsData"
+                                 style="width: 100%">
+                        </i-table>
+                    </Row>
+                    <Row type="flex" justify="center" class="code-row-bg" style="margin-top: 30px">
+                        <Page :total="0"></Page>
+                    </Row>
+                </tab-pane>
+
+
+                <tab-pane label="关注的服务" name="attentionApps">
+                    <Row type="flex" class="code-row-bg">
+                        <i-table :columns="attentionAppsColumns" :data="attentionAppsData" style="width: 100%">
+                        </i-table>
+                    </Row>
+                    <Row type="flex" justify="center" class="code-row-bg" style="margin-top: 30px">
+                        <Page :total="0"></Page>
+                    </Row>
+                </tab-pane>
+
+                <tab-pane label="业务线服务" name="businessLineApps">
+                </tab-pane>
+
+                <tab-pane label="事业群服务" name="businessGroupApps">
+                </tab-pane>
+
+                <tab-pane label="全部服务" name="allApps">
+                    <Row type="flex" class="code-row-bg">
+                        <i-table :columns="allAppsColumns" :data="allAppsData" :stripe="false" border="true">
+                        </i-table>
+                    </Row>
+                    <Row type="flex" justify="center" class="code-row-bg" style="margin-top: 30px">
+                        <Page :total="0"></Page>
+                    </Row>
+                </tab-pane>
+            </Tabs>
+        </div>
+
+
+    </div>
+
+    <script>
+        var home = new Vue({
+            el: '#home',
+            data: {
+                appName: '',
+                appNames: [],
+
+                ownerAppsColumns: [{title: 'appName', key: 'appName'}, {title: '负责人', key: 'owner'},
+                    {title: '描述信息', key: 'desc'},
+                    {
+                        title: '操作',
+                        key: 'operating',
+
+                    }],
+                ownerAppsData: [{'appName': 'afaf', 'owner': 'afaf', 'desc': 'afaf', 'operating': 'afaf'}],
+
+                attentionAppsColumns: [{title: 'appName', key: 'appName'}, {title: '负责人', key: 'owner'}, {
+                    title: '描述信息',
+                    key: 'desc'
+                }, {title: '操作', key: 'operating'}],
+                attentionAppsData: [],
+
+                allAppsColumns: [{title: 'appName', key: 'appName'}, {title: '负责人', key: 'owner'}, {
+                    title: '描述信息',
+                    key: 'desc'
+                }, {title: '操作', key: 'operating'}],
+                allAppsData: [],
+            },
+            methods: {
+                // 查询
+                searchSuggest: _.debounce(
+                    function (appName) {
+                        var $this = this;
+                        axios.get('/ownerApps', {
+                            params: {
+                                appName: appName
+                            }
+                        }).then(function (response) {
+                            var ownerAppsData = response.data;
+                            if (!ownerAppsData.succ) {
+                                $this.$Message.warning(ownerAppsData.msg);
+                            } else {
+                                var ownerApps = ownerAppsData.data;
+                                // 渲染
+                                for (var i = 0; i < ownerApps.length; i++) {
+                                    $this.appNames[i] = ownerApps[i].name;
+                                }
+
+                            }
+
+                        }).catch(function (error) {
+                            $this.$Message.warning('查询未知异常.');
+                        });
+
+                    },
+                    // 这是我们为用户停止输入等待的毫秒数
+                    100
+                ),
+                searchChange: function () {
+                    console.log("change");
+                },
+                searchSelect: function (appName) {
+                    var $this = this;
+                    axios.get('/ownerApps', {
+                        params: {
+                            appName: appName
+                        }
+                    }).then(function (response) {
+                        var ownerAppsData = response.data;
+                        if (!ownerAppsData.succ) {
+                            $this.$Message.warning(ownerAppsData.msg);
+                        } else {
+                            var ownerApps = ownerAppsData.data;
+                            // 渲染
+                            for (var i = 0; i < ownerApps.length; i++) {
+
+                            }
+                        }
+
+                    }).catch(function (error) {
+                        $this.$Message.warning('查询未知异常.');
+                    });
+                },
+
+
+            }
+        });
+    </script>
+
+    <style>
+
+        #analysis {
+            margin: 30px 50px 0 50px;
+        }
+
+        .layout-tabs {
+            margin: 20px 0 0 0;
+        }
+
+    </style>
+</div>
+
+</html>

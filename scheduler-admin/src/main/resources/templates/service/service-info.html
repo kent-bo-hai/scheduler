@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:layout="http://www.ultraq.net.nz/web/thymeleaf/layout"
+      layout:decorator="layouts/default">
+
+<head>
+    <title>服务提供者</title>
+</head>
+
+<div layout:fragment="content">
+
+    <style>
+        [v-cloak] {
+            display: none !important;
+        }
+
+        .ivu-tabs-tab {
+            font-size: 18px;
+            font-weight: 400;
+        }
+
+        .row {
+            margin: 35px 5px;
+            font-size: 18px;
+            /*font-weight: 400;*/
+        }
+
+        .label {
+            text-align: right;
+        }
+
+        .info {
+            margin-left: 30px;
+            text-align: left;
+        }
+
+
+    </style>
+
+    <div id="service-info-layout" v-cloak>
+        <div class="layout-search">
+            <span style="font-size: 16px; font-weight:500; margin-right: 10px">选择服务:</span>
+            <Auto-Complete
+                    v-model="appName"
+                    :data="appNames"
+                    icon="ios-search"
+                    @on-search="searchSuggest"
+                    @on-select="searchSelect"
+                    placeholder="appName、负责人、为空查询全部"
+                    clearable="true"
+                    style="width:600px" v-cloak>
+            </Auto-Complete>
+        </div>
+
+        <div class="tabs-layout">
+            <Tabs :value="tabName" @on-click="tabOnClick">
+                <tab-pane label="服务提供者" name="serviceProviders">
+                </tab-pane>
+
+                <tab-pane label="服务消费者" name="serviceConsumers">
+                </tab-pane>
+
+                <tab-pane label="服务详情" name="serviceInfo">
+
+                    <div style="margin-left: 50px;">
+                        <Row class="row">
+                            <i-col class="label" span="3">
+                                appName:
+                            </i-col>
+                            <i-col class="info" span="11">
+                                {{name}}
+                            </i-col>
+                        </Row>
+                        <Row class="row">
+                            <i-col class="label" span="3">
+                                负责人:
+                            </i-col>
+                            <i-col class="info" span="11">
+                                {{ownerNames}}
+                            </i-col>
+                        </Row>
+                        <Row class="row">
+                            <i-col class="label" span="3">
+                                关注人:
+                            </i-col>
+                            <i-col class="info" span="11">
+                                {{followerNames}}fffffffffffffffffffffffffffz红啊嘎嘎个骄傲Joe奇偶就饿哦就foe佛
+                            </i-col>
+                        </Row>
+                        <Row class="row">
+                            <i-col class="label" span="3">
+                                所属业务:
+                            </i-col>
+                            <i-col class="info" span="11">
+                                {{businessLineName}}
+                            </i-col>
+                        </Row>
+                        <Row class="row">
+                            <i-col class="label" span="3">
+                                服务描述:
+                            </i-col>
+                            <i-col class="info" span="11">
+                                {{desc}}
+                            </i-col>
+                        </Row>
+
+                        <Row class="row">
+                            <i-col class="label" span="3">
+                                创建时间:
+                            </i-col>
+                            <i-col class="info" span="11">
+                                {{createTimeDesc}}
+                            </i-col>
+                        </Row>
+
+                        <i-button type="primary" style="margin-left: 195px">修改</i-button>
+
+                    </div>
+
+                </tab-pane>
+
+                <tab-pane label="服务依赖" name="serviceDependency">
+                </tab-pane>
+
+                <tab-pane label="组件依赖" name="serviceComponentDependency">
+                </tab-pane>
+
+                <tab-pane label="事实日志" name="serviceRealTimeLog">
+                </tab-pane>
+
+            </Tabs>
+        </div>
+
+
+    </div>
+
+    <script>
+        header.navName = 'serviceInfoNav';
+        var serviceProvidersVue = new Vue({
+                el: '#service-info-layout',
+                data: {
+                    appName: '',
+                    appNames: [],
+
+                    tabName: 'serviceInfo',
+
+                    name: 'affaaaaaaaa',
+                    ownerNames: 'afaaaaaaaaaaaa',
+
+                    followerNames: 'afafafa',
+//        private int businessLineId;
+                    businessLineName: 'affffff',
+                    desc: 'afffffffff',
+//        private long createTime;
+                    createTimeDesc: 'affffff',
+
+                },
+                mounted: function () {
+                    this.$nextTick(function () {
+
+                    })
+                }
+                ,
+                methods: {
+                    // 查询
+                    searchSuggest: _.debounce(
+                        function (appName) {
+                            var $this = this;
+                            axios.get('/api/suggest/ownerApp', {
+                                params: {
+                                    appName: appName
+                                }
+                            }).then(function (response) {
+                                var apiResult = response.data;
+                                if (!apiResult.succ) {
+                                    $this.$Message.warning(apiResult.msg);
+                                } else {
+                                    var services = apiResult.data;
+                                    // 渲染
+                                    for (var i = 0; i < services.length; i++) {
+                                        $this.appNames[i] = services[i].name;
+                                    }
+
+                                }
+
+                            }).catch(function (error) {
+                                console.error(error);
+                                $this.$Message.warning('查询未知异常.');
+                            });
+
+                        },
+                        // 这是我们为用户停止输入等待的毫秒数
+                        100
+                    ),
+                    searchSelect: function (appName) {
+                        if (!appName) {
+                            this.$Message.warning('请选择服务');
+                            return false;
+                        }
+                        const $this = this;
+                        this.serviceProvidersLoading = true;
+                        axios.get('/api/service/' + appName + '/providers', {
+                            timeout: 5000
+                        }).then(function (response) {
+                            const apiResult = response.data;
+                            if (!apiResult.succ) {
+                                $this.$Message.warning(apiResult.msg);
+                            } else {
+                                const pagination = apiResult.data;
+                                const serviceProviders = pagination.data;
+                                // 渲染
+                                // table
+                                $this.serviceProvidersData.length = 0;
+                                for (let i = 0; i < serviceProviders.length; i++) {
+                                    let serviceProvider = serviceProviders[i];
+                                    $this.serviceProvidersData.push(
+                                        {
+                                            host: serviceProvider.host,
+                                            ip: serviceProvider.ip,
+                                            port: serviceProvider.port,
+                                            version: serviceProvider.version,
+                                            weight: serviceProvider.weight,
+                                            statusDesc: serviceProvider.statusDesc,
+                                            updateTimeDesc: serviceProvider.updateTimeDesc
+                                        }
+                                    );
+                                }
+                                // page
+                                $this.pageNum = pagination.pageNum;
+                                $this.total = pagination.total;
+                            }
+
+                            $this.serviceProvidersLoading = false;
+                        }).catch(function (error) {
+                            $this.serviceProvidersLoading = false;
+                            $this.$Message.warning('查询未知异常.');
+                        });
+
+                    }
+
+                    ,
+
+
+                    // tabs
+                    tabOnClick: function (tabValue) {
+                        if (!this.appName) {
+                            this.$Message.warning('请选择服务.');
+//                        serviceProvidersVue.tabName = 'serviceProviders';
+//                        serviceProvidersVue.preventDefault();
+//                        return false;
+                        }
+                        switch (tabValue) {
+                            case 'serviceProviders':
+                                location.href = "/service/" + this.appName + "/providers";
+                                break;
+                            case 'serviceConsumers':
+                                location.href = "/service/" + this.appName + "/consumers";
+                                break;
+                            case 'serviceInfo':
+                                location.href = "/service/" + this.appName + "/info";
+                                break;
+                            case 'serviceDependency':
+                                location.href = "/service/" + this.appName + "/dependency";
+                                break;
+                            case 'serviceComponentDependency':
+                                location.href = "/service/" + this.appName + "/componentDependency";
+                                break;
+                            case 'serviceRealTimeLog':
+                                location.href = "/service/" + this.appName + "/realTimeLog";
+                                break;
+
+                            default:
+                                break;
+                        }
+                    }
+                    ,
+
+                }
+            })
+        ;
+    </script>
+
+    <style>
+
+
+    </style>
+</div>
+
+</html>

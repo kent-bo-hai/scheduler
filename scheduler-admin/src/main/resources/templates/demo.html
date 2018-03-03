@@ -1,0 +1,206 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <!-- 引入组件库 Vue -->
+    <script src="https://cdn.bootcss.com/vue/2.4.4/vue.min.js"></script>
+
+    <!-- 引入样式、组件库 iview -->
+    <link href="https://cdn.bootcss.com/iview/2.4.0/styles/iview.css" rel="stylesheet">
+    <script src="https://cdn.bootcss.com/iview/2.4.0/iview.min.js"></script>
+    <script src="https://cdn.bootcss.com/iview/2.4.0/locale/zh-CN.min.js"></script>
+    <title>RunJS 演示代码</title>
+</head>
+<body>
+
+<div id="home-layout">
+    <script>
+        Vue.config.devtools = true
+    </script>
+    <div class="layout-search">
+        <Auto-Complete
+                v-model="appName"
+                :data="appNames"
+                icon="ios-search"
+
+                placeholder="appName、负责人、为空查询全部"
+                size="large"
+                clearable="true"
+                style="width:800px">
+        </Auto-Complete>
+    </div>
+
+    <div class="layout-tabs">
+        <Tabs :value="tabValue" :animated="false" @on-click="tabOnClick">
+            <tab-pane label="负责的服务" name="ownerApps">
+                <!-- page content -->
+
+                <div id="owner-apps-layout">
+
+                    <i-table :columns="ownerAppsColumns" :data="ownerAppsData" stripe="true">
+                    </i-table>
+
+                    <script>
+                        var ownerAppsVue = new Vue({
+                            el: '#owner-apps-layout',
+                            data: {
+                                ownerAppsColumns: [
+                                    {
+                                        title: 'appName',
+                                        key: 'appName',
+                                        render: function (h, params) {
+                                            return h('div', [
+                                                h('a', {
+                                                    domProps: {
+                                                        href: 'afafa'
+                                                    }
+                                                }, params.row.appName),
+                                            ]);
+                                        }
+                                    },
+                                    {
+                                        title: '负责人', key: 'owner'
+                                    },
+                                    {
+                                        title: '描述信息', key: 'desc'
+                                    },
+                                    {
+                                        title: '操作',
+                                        key: 'operating',
+                                        render: (h, params) => {
+                                            return h('div', [
+                                                h('i-button', {
+                                                    props: {
+                                                        type: 'primary',
+                                                        size: 'small'
+                                                    },
+                                                    on: {
+                                                        click: function () {
+                                                            ownerAppsVue.show(params.index)
+                                                        }
+                                                    }
+                                                }, '编辑'),
+                                                h('Button', {
+                                                    props: {
+                                                        type: 'primary',
+                                                        size: 'small'
+                                                    },
+                                                    style: {
+                                                        marginLeft: '5px'
+                                                    },
+                                                    on: {
+                                                        click: function (event) {
+                                                            console.log("fa");
+                                                            console.log(event);
+                                                            ownerAppsVue.remove();
+                                                        }
+                                                    }
+                                                }, '详情'),
+                                            ]);
+                                        },
+                                        renderError (h, err) {
+                                            return h('pre', {style: {color: 'red'}}, err.stack)
+                                        }
+
+                                    }],
+                                ownerAppsData: [
+                                    {
+                                        'appName': 'afaf', 'owner': 'afaf', 'desc': 'afaf',
+                                    },
+                                    {
+                                        'appName': 'afaf', 'owner': 'afaf', 'desc': 'afaf'
+                                    }
+                                ],
+
+                            },
+                            created: function () {
+                                console.log("ownerAppsVue created.....");
+                            },
+                            methods: {
+                                show: function (index) {
+                                    console.log("show : " + index);
+//                    this.$Modal.info({
+//                        title: '用户信息',
+//                        content: `姓名：${this.ownerAppsData[index].appName}<br>年龄：${this.ownerAppsData[index].owner}<br>地址：${this.ownerAppsData[index].desc}`
+//                    });
+                                },
+                                remove: function (index) {
+                                    console.log("remove : " + index);
+                                    this.ownerAppsData.splice(index, 1);
+                                }
+                            }
+                        });
+                    </script>
+                </div>
+
+            </tab-pane>
+
+            <tab-pane label="关注的服务" name="attentionApps">
+                <!-- page content -->
+            </tab-pane>
+
+            <tab-pane label="业务线服务" name="businessLineApps">
+                <!-- page content -->
+                <!--<div layout:fragment="businessLineAppsContent"></div>-->
+            </tab-pane>
+
+            <tab-pane label="事业群服务" name="businessGroupApps">
+                <!-- page content -->
+                <!--<div layout:fragment="businessGroupAppsContent"></div>-->
+            </tab-pane>
+
+            <tab-pane label="全部服务" name="allApps">
+                <!-- page content -->
+                <!--<div layout:fragment="allAppsContent"></div>-->
+            </tab-pane>
+        </Tabs>
+    </div>
+</div>
+
+
+<script>
+
+    var homeLayoutVue = new Vue({
+        el: '#home-layout',
+        data: {
+            appName: '',
+            appNames: [],
+            tabValue: '',
+        },
+        mounted: function () {
+            //push({'appName': 'afaf', 'owner': 'afaf', 'desc': 'afaf'});
+            console.log("homeLayoutVue created.....");
+        },
+        methods: {
+            tabOnClick: function (tabValue) {
+                switch (tabValue) {
+                    case 'ownerApps':
+                        location.href = "/afafa";
+                        break;
+                    case 'attentionApps':
+                        location.href = "/afafa/attentions";
+                        break;
+                    case 'businessLineApps':
+                        location.href = "/afafa/businessLine";
+                        break;
+                    case 'businessGroupApps':
+                        location.href = "/afafa/businessGroup";
+                        break;
+                    case 'allApps':
+                        location.href = "/afafa/all";
+                        break;
+                    default:
+                        location.href = "/afafa";
+                        break;
+                }
+            },
+        }
+    });
+
+    ownerAppsVue.ownerAppsData.length = 0;
+</script>
+
+
+</body>
+</html>

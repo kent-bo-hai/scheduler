@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/web/thymeleaf/layout"
+      layout:decorator="layouts/default">
+
+<head>
+    <title>服务提供者</title>
+    <script src="https://cdn.bootcss.com/moment.js/2.19.0/moment.min.js"></script>
+    <script src="https://cdn.bootcss.com/moment.js/2.19.0/moment-with-locales.min.js"></script>
+    <script src="https://cdn.bootcss.com/moment.js/2.19.0/locale/zh-cn.js"></script>
+</head>
+
+<div layout:fragment="content">
+
+    <style>
+
+        .ivu-input-group-append {
+            color: #fff;
+            background-color: #2d8cf0;
+            border-color: #2d8cf0;
+            /*#2b85e4*/
+        }
+
+        .table-layout {
+            margin: 10px 0 0;
+        }
+
+        .statisticsClass {
+            border-width: 1px;
+            border-style: none solid solid none;
+            border-color: #5cadff;
+            -webkit-box-shadow: 0 0 5px;
+            -moz-box-shadow: 0 0 5px;
+            box-shadow: 0 0 5px;
+            margin: 5px;
+        }
+
+        .ivu-table .table-error-row td {
+            background-color: #ff6600;
+            color: #fff;
+        }
+
+        [v-cloak] {
+            display: none !important;
+        }
+    </style>
+
+    <div id="service-providers-layout" v-cloak>
+        <div class="layout-search">
+            <span style="font-size: 16px; font-weight:500; margin-right: 10px">选择服务:</span>
+
+            <i-select
+                    v-model="appName"
+                    filterable
+                    remote
+                    :loading="suggestLoading"
+                    :remote-method="serviceSearchSuggest"
+                    @on-change="serviceOnChange"
+                    placeholder="appName、负责人、为空查询全部"
+                    style="width:600px;">
+                <i-Option v-for="(option, index) in appNames" :value="option.value" :key="index">{{option.label}}
+                </i-Option>
+            </i-select>
+
+        </div>
+
+        <div class="tabs-layout">
+            <Tabs :value="tabName" @on-click="tabOnClick">
+                <tab-pane label="配置管理" name="serviceConfigurationManagement">
+                    <Row>
+                        <i-col span="3">
+                            类型:
+                            <button-group>
+                                <i-button :class="{'ivu-btn-primary': serviceConfigType ==='K-V'}">K-V</i-button>
+                                <!--<i-button>文件</i-button>-->
+                            </button-group>
+                        </i-col>
+
+                        <i-col span="4">
+                            环境:
+                            <button-group>
+                                <!--serviceEnv-->
+                                <i-button id="serviceProdEnv" :class="{'ivu-btn-primary': serviceEnv ==='prod'}"
+                                          @click="serviceProdEnvClick">
+                                    prod
+                                </i-button>
+                                <i-button id="serviceStagingEnv" :class="{'ivu-btn-primary': serviceEnv ==='staging'}"
+                                          @click="serviceStagingEnvClick">
+                                    staging
+                                </i-button>
+                                <i-button id="serviceTestEnv" :class="{'ivu-btn-primary': serviceEnv ==='test'}"
+                                          @click="serviceTestEnvClick">
+                                    test
+                                </i-button>
+                            </button-group>
+                        </i-col>
+
+                        <i-col span="5">
+                            <i-button type="primary" icon="ios-list">操作日志</i-button>
+                            <i-button type="primary" style="margin-left: 5px;">设置</i-button>
+                        </i-col>
+                    </Row>
+
+                    <div style="margin-top: 39px">
+
+                        <button-group style="margin-left: 10px;">
+                            <i-button icon="document-text" type="primary" @click="batchSave">保存</i-button>
+                            <i-button icon="trash-a" type="error" @click="batchDel">删除</i-button>
+                            <!--<i-button>正常</i-button>-->
+                        </button-group>
+
+                        <i-button icon="android-add-circle" type="success" @click="addRow" style="margin-left: 10px;">
+                            添加一项
+                        </i-button>
+                    </div>
+
+                    <div class="table-layout">
+                        <i-table :columns="configurationManagementColumns"
+                                 :data="configurationManagementData"
+                                 :row-class-name="rowClassName"
+                                 :loading="serviceProvidersLoading"
+                                 @on-selection-change="rowOnSelectionChange">
+                        </i-table>
+                    </div>
+
+                </tab-pane>
+
+                <tab-pane label="服务分组" name="serviceGroupingNav">
+                </tab-pane>
+
+                <tab-pane label="访问控制" name="serviceAccessControlNav">
+                </tab-pane>
+
+                <tab-pane label="操作记录" name="serviceOperationRecordNav">
+                </tab-pane>
+            </Tabs>
+        </div>
+
+
+    </div>
+
+    <script th:inline="javascript">
+
+        const appName = [[${appName}]];
+        header.navName = 'serviceConfigurationManagementNav';
+        var configInfosVue = new Vue({
+            el: '#service-providers-layout',
+            data: {
+                appName: appName,
+                appNames: [],
+                suggestLoading: false,
+
+                tabName: 'serviceConfigurationManagement',
+
+                serviceConfigType: 'K-V',
+                serviceEnv: 'prod',
+                delModel: true,
+
+                configurationManagementColumns: [
+                    {
+                        type: 'selection',
+                        key: 'index',
+                        width: 32,
+                        align: 'center'
+                    },
+                    {
+                        title: 'Key', key: 'key', width: 280,
+                        render: function (h, params) {
+                            return h('div', [
+                                h('Input', {
+                                    props: {
+                                        readonly: params.row.id ? true : false,
+                                        value: params.row.key,
+                                        lazy: true,
+                                    },
+                                    domProps: {},
+                                    style: {},
+                                    on: {
+                                        input: function (x) {
+                                            params.row.key = x;
+                                            configInfosVue.configurationManagementData[params.index] = params.row;
+                                        },
+
+                                    }
+                                }),
+                            ]);
+                        }
+
+                    },
+                    {
+                        title: 'Value', key: 'value', width: 300,
+                        render: function (h, params) {
+                            return h('div', [
+                                h('Input', {
+                                    props: {
+                                        value: params.row.value,
+                                        type: 'textarea',
+                                        autosize: {minRows: 1, maxRows: 6},
+                                    },
+                                    domProps: {},
+                                    style: {},
+                                    on: {
+                                        input: function (x) {
+                                            params.row.value = x;
+                                            configInfosVue.configurationManagementData[params.index] = params.row;
+                                        },
+                                    }
+                                }),
+                            ]);
+                        }
+                    },
+                    {
+                        title: 'Comment', key: 'comment', width: 250,
+                        render: function (h, params) {
+                            return h('div', [
+                                h('Input', {
+                                    props: {
+                                        value: params.row.comment,
+                                        type: 'textarea',
+                                        autosize: {minRows: 1, maxRows: 6},
+
+                                    },
+                                    domProps: {},
+                                    style: {},
+                                    on: {
+                                        input: function (x) {
+                                            params.row.comment = x;
+                                            configInfosVue.configurationManagementData[params.index] = params.row;
+                                        },
+                                    }
+                                }),
+                            ]);
+                        }
+                    },
+                    {
+                        title: '创建时间', key: 'createTimeDesc', width: 168, sortType: 'desc',
+                    },
+                    {
+                        title: '更新时间', key: 'updateTimeDesc', width: 168,
+                    },
+                    {
+                        title: '操作', key: 'operating',
+                        render: function (h, params) {
+                            return h('div', [
+                                h('Button', {
+                                    props: {
+                                        icon: "document-text",
+                                        type: 'success',
+                                        size: 'small',
+                                    },
+                                    domProps: {},
+                                    style: {},
+                                    on: {
+                                        click: function () {
+                                            configInfosVue.rowSave(params.row, params.index);
+                                        }
+                                    }
+                                }, '保存'),
+                                h('Button', {
+                                    props: {
+                                        icon: "trash-a",
+                                        type: 'warning',
+                                        size: 'small',
+                                    },
+                                    domProps: {
+                                        name: 'remove'
+                                    },
+                                    style: {
+                                        marginLeft: '5px'
+                                    },
+                                    on: {
+                                        click: function () {
+                                            configInfosVue.rowDel(params.row, params.index);
+                                        }
+                                    }
+                                }, '删除'),
+                            ]);
+                        }
+                    }],
+                configurationManagementData: [],
+
+//                configurationManagementData: [],
+                serviceProvidersLoading: false,
+                selections: [],
+
+            },
+            mounted: function () {
+                this.$nextTick(function () {
+                    this.searchSelect(this.appName);
+                })
+            },
+            methods: {
+                // 查询
+                serviceSearchSuggest: _.debounce(
+                    function (appName) {
+                        const $this = this;
+                        this.suggestLoading = true;
+                        axios.get('/api/suggest/ownerApp', {
+                            params: {
+                                appName: appName
+                            }
+                        }).then(function (response) {
+                            const apiResult = response.data;
+                            if (!apiResult.succ) {
+                                $this.$Message.warning(apiResult.msg);
+                            } else {
+                                const services = apiResult.data;
+                                // 渲染
+                                $this.appNames = [];
+                                for (let i = 0; i < services.length; i++) {
+                                    $this.appNames.push({
+                                        label: services[i].name,
+                                        value: services[i].name,
+                                    });
+                                }
+
+                            }
+                            $this.suggestLoading = false;
+                        }).catch(function (error) {
+                            $this.suggestLoading = false;
+                            console.error(error);
+                            $this.$Message.warning('查询未知异常.');
+                        });
+
+                    },
+                    // 这是我们为用户停止输入等待的毫秒数
+                    300
+                ),
+                serviceOnChange: function (appName) {
+                    if (!appName) {
+                        this.$Message.warning('请选择服务');
+                        return false;
+                    }
+                    location.href = '/service/' + appName + '/configurationManagement';
+
+                },
+                searchSelect: function (appName) {
+                    let serviceEnv = this.serviceEnv;
+                    if (!appName) {
+                        this.$Message.warning('请选择服务');
+                        return false;
+                    }
+                    const $this = this;
+                    this.serviceProvidersLoading = true;
+                    console.log(appName + ";" + serviceEnv);
+                    axios.get('/api/service/' + appName + '/env/' + serviceEnv + '/configs', {
+                        params: {},
+                        timeout: 5000
+                    }).then(function (response) {
+                        const apiResult = response.data;
+                        if (!apiResult.succ) {
+                            $this.$Message.warning(apiResult.msg);
+                        } else {
+                            const configInfoList = apiResult.data;
+                            // 渲染
+                            // table
+                            $this.configurationManagementData.length = 0;
+                            for (let i = 0; i < configInfoList.length; ++i) {
+                                let configInfo = configInfoList[i];
+                                $this.configurationManagementData.push(
+                                    {
+                                        index: i,
+                                        id: configInfo.id,
+                                        sourceKey: configInfo.key,
+                                        key: configInfo.key,
+                                        sourceValue: configInfo.value,
+                                        value: configInfo.value,
+                                        sourceComment: configInfo.comment,
+                                        comment: configInfo.comment,
+                                        createTimeDesc: configInfo.createTimeDesc,
+                                        updateTimeDesc: configInfo.updateTimeDesc,
+
+                                    }
+                                );
+                            }
+                        }
+
+                        $this.serviceProvidersLoading = false;
+                    }).catch(function (error) {
+                        $this.serviceProvidersLoading = false;
+                        $this.$Message.warning('删除未知异常.');
+                    });
+                },
+
+                serviceProdEnvClick: function () {
+                    this.serviceEnv = 'prod';
+                    this.searchSelect(this.appName);
+                },
+                serviceStagingEnvClick: function () {
+                    this.serviceEnv = 'staging';
+                    this.searchSelect(this.appName);
+                },
+                serviceTestEnvClick: function () {
+                    this.serviceEnv = 'test';
+                    this.searchSelect(this.appName);
+                },
+                // tabs
+                tabOnClick: function (tabValue) {
+                    console.log(tabValue);
+                    console.log(this);
+                    if (!this.appName) {
+                        this.$Message.warning('请选择服务.');
+//                        configInfosVue.tabName = 'serviceProviders';
+//                        configInfosVue.preventDefault();
+                        return false;
+                    }
+                    switch (tabValue) {
+                        case 'serviceProviders':
+                            location.href = "/service/" + this.appName + "/providers";
+                            break;
+                        case 'serviceConsumers':
+                            location.href = "/service/" + this.appName + "/consumers";
+                            break;
+                        case 'serviceInfo':
+                            location.href = "/service/" + this.appName + "/info";
+                            break;
+                        case 'serviceDependency':
+                            location.href = "/service/" + this.appName + "/dependency";
+                            break;
+                        case 'serviceComponentDependency':
+                            location.href = "/service/" + this.appName + "/componentDependency";
+                            break;
+                        case 'serviceRealTimeLog':
+                            location.href = "/service/" + this.appName + "/realTimeLog";
+                            break;
+
+                        default:
+                            break;
+                    }
+                },
+
+
+                // table 操作
+                rowClassName: function (row, index) {
+                    let currentRow = this.configurationManagementData[index];
+                    if (!row.id
+                        || currentRow.key !== currentRow.sourceKey
+                        || currentRow.value !== currentRow.sourceValue
+                        || currentRow.comment !== currentRow.sourceComment) {
+                        return 'table-error-row';
+                    }
+                    return '';
+                },
+                // table - 批量 操作
+                rowOnSelectionChange: function (selections) {
+                    this.selections = selections;
+                },
+                pageSizeOnChange: function (pageSize) {
+                    console.debug(pageSize);
+                    console.debug(configInfosVue.pageSize);
+
+                },
+                batchSave: function () {
+                    if (!this.selections || this.selections.length === 0) {
+                        this.$Message.warning({
+                            content: '请选择',
+                            duration: 2,
+                        });
+                        return;
+                    }
+
+                    let selectionsLength = this.selections.length;
+
+                    axios.post('/api/service/' + appName + '/configs', {
+                        params: {
+                            configInfos: configInfos,
+                        },
+                    }).then(function (response) {
+                        const apiResult = response.data;
+                        if (!apiResult.succ) {
+                            $this.$Message.warning(apiResult.msg);
+                        } else {
+                            // 渲染
+                            // table
+                            for (let i = selectionsLength - 1; i >= 0; --i) {
+                                let index = $this.selections[i].index;
+                                $this.configurationManagementData.splice(index, 1);
+                            }
+                            $this.selections = [];
+
+                            // page
+                            $this.total -= selectionsLength;
+                        }
+
+                        $this.serviceProvidersLoading = false;
+                    }).catch(function (error) {
+                        console.error(error);
+                        $this.serviceProvidersLoading = false;
+                        $this.$Message.warning('查询未知异常.');
+                    });
+
+                },
+                batchDel: function () {
+                    let $this = this;
+
+                    if (!this.selections || this.selections.length === 0) {
+                        this.$Message.warning({
+                            content: '请选择',
+                            duration: 2,
+                        });
+                        return;
+                    }
+
+                    let selectionsLength = this.selections.length;
+
+
+                    this.$Modal.confirm({
+                        title: '删除',
+                        content: '是否删除',
+                        onOk: function () {
+                            let ids = [];
+                            for (let i = 0; i < selectionsLength - 1; ++i) {
+                                let id = $this.selections[i].id;
+                                if (id && id > 0) {
+                                    ids[i] = id;
+                                }
+                            }
+                            console.log($this.selections);
+                            axios.delete('/api/service/' + appName + '/env/' + +'/configs', {
+                                params: {
+                                    ids: ids,
+                                },
+                            }).then(function (response) {
+                                const apiResult = response.data;
+                                if (!apiResult.succ) {
+                                    $this.$Message.warning(apiResult.msg);
+                                } else {
+                                    // 渲染
+                                    // table
+                                    for (let i = selectionsLength - 1; i >= 0; --i) {
+                                        let index = $this.selections[i].index;
+                                        $this.configurationManagementData.splice(index, 1);
+                                    }
+                                    $this.selections = [];
+
+                                    // page
+                                    $this.total -= selectionsLength;
+                                }
+
+                                $this.serviceProvidersLoading = false;
+                            }).catch(function (error) {
+                                console.error(error);
+                                $this.serviceProvidersLoading = false;
+                                $this.$Message.warning('查询未知异常.');
+                            });
+
+
+                        },
+                    });
+
+
+                },
+                addRow: function () {
+                    let currentDate = moment(Date.now()).format('YYYY-MM-DD HH:mm:ss');
+
+                    this.configurationManagementData.push(
+                        {
+                            index: this.configurationManagementData.length,
+                            key: "",
+                            value: '',
+                            comment: '',
+                            createTimeDesc: currentDate,
+                            updateTimeDesc: currentDate,
+
+                        }
+                    );
+                },
+
+                // table - 单个 操作
+                rowSave: function (row, index) {
+                    const $this = this;
+                    const appName = this.appName;
+                    const serviceEnv = this.serviceEnv;
+                    // 验证
+                    let validRowFlag = this.validRow(row);
+                    if (!validRowFlag) {
+                        return false;
+                    }
+
+                    let configInfos = [];
+                    configInfos.push({
+                        index: index,
+                        key: row.key,
+                        value: row.value,
+                        comment: row.comment,
+                    });
+
+                    axios.post('/api/service/' + appName + '/env/' + serviceEnv + '/configs', configInfos).then(function (response) {
+                        const apiResult = response.data;
+                        if (!apiResult.succ) {
+                            $this.$Message.warning(apiResult.msg);
+                        } else {
+//                            // 渲染
+//                            // table
+//                            $this.configurationManagementData.length = 0;
+//                            for (let i = 0; i < configInfoList.length; i++) {
+//                                let configInfo = configInfoList[i];
+//                                $this.configurationManagementData.push(
+//                                    {
+//                                        id: configInfo.id,
+//                                        key: configInfo.key,
+//                                        value: configInfo.value,
+//                                        comment: configInfo.comment,
+//                                        createTimeDesc: configInfo.createTimeDesc,
+//                                        updateTimeDesc: configInfo.updateTimeDesc,
+//
+//                                    }
+//                                );
+//                            }
+//                            // page
+//                            $this.pageNum = pagination.pageNum;
+//                            $this.total = pagination.total;
+                        }
+
+                        $this.serviceProvidersLoading = false;
+                    }).catch(function (error) {
+                        console.error(error);
+                        $this.serviceProvidersLoading = false;
+                        $this.$Message.warning('查询未知异常.');
+                    });
+                },
+
+                rowDel: function (row, index) {
+                    const $this = this;
+                    if (!row || !row.id) {
+                        $this.configurationManagementData.splice(index, 1);
+                    } else {
+                        let keys = [];
+                        let appName = this.appName;
+                        let serviceEnv = this.serviceEnv;
+                        keys.push(row.key);
+                        this.$Modal.confirm({
+                            title: '删除',
+                            content: '是否删除',
+                            onOk: function () {
+
+                                axios.delete('/api/service/' + appName + '/env/' + serviceEnv + '/configs', {
+                                    params: {
+                                        keys: keys,
+                                    },
+                                }).then(function (response) {
+                                    const apiResult = response.data;
+                                    if (!apiResult.succ) {
+                                        $this.$Message.warning(apiResult.msg);
+                                    } else {
+                                        // 渲染
+                                        // table
+                                        $this.configurationManagementData.splice(index, 1);
+                                        for (let i = $this.selections.length - 1; i >= 0; --i) {
+                                            if ($this.selections.index === index) {
+                                                $this.selections.splice(i, 1);
+                                                break;
+                                            }
+                                        }
+
+                                        // page
+                                        $this.total -= 1;
+                                    }
+
+                                    $this.serviceProvidersLoading = false;
+                                }).catch(function (error) {
+                                    console.error(error);
+                                    $this.serviceProvidersLoading = false;
+                                    $this.$Message.warning('查询未知异常.');
+                                });
+
+                            },
+                        });
+                    }
+                },
+
+                validRow: function (row) {
+                    if (!row.key || row.key.trim().length === 0) {
+                        this.$Message.warning('请输入key');
+                        return false;
+                    }
+                    if (!row.value || row.value.trim().length === 0) {
+                        this.$Message.warning('请输入value');
+                        return false;
+                    }
+                    if (!row.comment || row.comment.trim().length === 0) {
+                        this.$Message.warning('请输入comment');
+                        return false;
+                    }
+
+                    return true;
+                }
+
+            }
+        });
+    </script>
+
+    <style>
+
+
+    </style>
+</div>
+
+</html>

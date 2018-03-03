@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:layout="http://www.ultraq.net.nz/web/thymeleaf/layout"
+      layout:decorate="layouts/default">
+
+<div layout:fragment="content">
+
+    <div id="home-layout">
+        <div class="layout-search">
+            <Auto-Complete
+                    v-model="appName"
+                    :data="appNames"
+                    icon="ios-search"
+                    @on-search="searchSuggest"
+                    @on-change="searchChange"
+                    @on-select="searchSelect"
+                    placeholder="appName、负责人、为空查询全部"
+                    size="large"
+                    clearable="true"
+                    style="width:800px">
+            </Auto-Complete>
+        </div>
+
+        <div class="layout-tabs">
+            <Tabs :value="tabValue" :animated="false" @on-click="tabOnClick">
+                <tab-pane label="负责的服务" name="ownerApps">
+                    <!-- page content -->
+                    <i-table :columns="ownerAppsColumns" :data="ownerAppsData" stripe="true" context="ownerAppsVue">
+                    </i-table>
+                </tab-pane>
+
+                <tab-pane label="关注的服务" name="followersApps">
+                    <!-- page content -->
+                    <div layout:fragment="followersAppsContent"></div>
+                </tab-pane>
+
+                <tab-pane label="业务线服务" name="businessLineApps">
+                    <!-- page content -->
+                    <div layout:fragment="businessLineAppsContent"></div>
+                </tab-pane>
+
+                <tab-pane label="事业群服务" name="businessGroupApps">
+                    <!-- page content -->
+                    <div layout:fragment="businessGroupAppsContent"></div>
+                </tab-pane>
+
+                <tab-pane label="全部服务" name="allApps">
+                    <!-- page content -->
+                    <div layout:fragment="allAppsContent"></div>
+                </tab-pane>
+            </Tabs>
+        </div>
+    </div>
+
+    <script>
+        header.navName = 'businessLineAppsNav';
+        var homeLayoutVue = new Vue({
+            el: '#home-layout',
+            data: {
+                // 查询
+                appName: '',
+                appNames: [],
+                // tabs
+                tabValue: 'businessLineApps',
+
+                // tab: ownerTab
+                ownerAppsColumns: [
+                    {
+                        title: 'appName',
+                        key: 'appName',
+                        render: function (h, params) {
+                            return h('div', [
+                                h('a', {
+                                    domProps: {
+                                        href: 'afafa'
+                                    }
+                                }, params.row.appName),
+                            ]);
+                        }
+                    },
+                    {
+                        title: '负责人', key: 'owner'
+                    },
+                    {
+                        title: '描述信息', key: 'desc'
+                    },
+                    {
+                        title: '操作',
+                        key: 'operating',
+                        render: (h, params) => {
+                            return h('div', [
+                                h('i-button', {
+                                    props: {
+                                        type: 'primary',
+                                        size: 'small'
+                                    },
+                                    on: {
+                                        click: function () {
+                                            homeLayoutVue.show(params.index)
+                                        }
+                                    }
+                                }, '编辑'),
+                                h('Button', {
+                                    props: {
+                                        type: 'primary',
+                                        size: 'small'
+                                    },
+                                    style: {
+                                        marginLeft: '5px'
+                                    },
+                                    on: {
+                                        click: () => {
+                                            homeLayoutVue.remove(params.index)
+                                        }
+                                    }
+                                }, '详情'),
+                            ]);
+                        }
+
+                    }],
+                ownerAppsData: [
+                    {
+                        'appName': 'afaf', 'owner': 'afaf', 'desc': 'afaf',
+                    },
+                    {
+                        'appName': 'afaf', 'owner': 'afaf', 'desc': 'afaf'
+                    }
+                ],
+
+            },
+            created: function () {
+                console.log("homeLayoutVue created.....");
+            },
+            methods: {
+                // 查询
+                searchSuggest: _.debounce(
+                    function (appName) {
+                        var $this = this;
+                        axios.get('/ownerApps', {
+                            params: {
+                                appName: appName
+                            }
+                        }).then(function (response) {
+                            var ownerAppsData = response.data;
+                            if (!ownerAppsData.succ) {
+                                $this.$Message.warning(ownerAppsData.msg);
+                            } else {
+                                var ownerApps = ownerAppsData.data;
+                                // 渲染
+                                for (var i = 0; i < ownerApps.length; i++) {
+                                    $this.appNames[i] = ownerApps[i].name;
+                                }
+
+                            }
+
+                        }).catch(function (error) {
+                            $this.$Message.warning('查询未知异常.');
+                        });
+
+                    },
+                    // 这是我们为用户停止输入等待的毫秒数
+                    100
+                ),
+                searchChange: function () {
+                    console.log("change");
+                },
+                searchSelect: function (appName) {
+                    var $this = this;
+                    axios.get('/ownerApps', {
+                        params: {
+                            appName: appName
+                        }
+                    }).then(function (response) {
+                        var ownerAppsData = response.data;
+                        if (!ownerAppsData.succ) {
+                            $this.$Message.warning(ownerAppsData.msg);
+                        } else {
+                            var ownerApps = ownerAppsData.data;
+                            // 渲染
+                            for (var i = 0; i < ownerApps.length; i++) {
+
+                            }
+                        }
+
+                    }).catch(function (error) {
+                        $this.$Message.warning('查询未知异常.');
+                    });
+                },
+                // tabs
+                tabOnClick: function (tabValue) {
+                    switch (tabValue) {
+                        case 'ownerApps':
+                            location.href = "/afafa";
+                            break;
+                        case 'followersApps':
+                            location.href = "/afafa/followers";
+                            break;
+                        case 'businessLineApps':
+                            location.href = "/afafa/businessLine";
+                            break;
+                        case 'businessGroupApps':
+                            location.href = "/afafa/businessGroup";
+                            break;
+                        case 'allApps':
+                            location.href = "/afafa/all";
+                            break;
+                        default:
+                            location.href = "/afafa";
+                            break;
+                    }
+                },
+                // tab : ownerTab
+                show: function (index) {
+                    console.log("show : " + index);
+                    this.$Modal.info({
+                        title: '用户信息',
+                        content: `姓名：${this.ownerAppsData[index].appName}<br>年龄：${this.ownerAppsData[index].owner}<br>地址：${this.ownerAppsData[index].desc}`
+                    });
+                },
+                remove: function (index) {
+                    console.log("remove : " + index);
+                    this.ownerAppsData.splice(index, 1);
+                },
+
+            }
+        });
+    </script>
+
+</div>
+
+</html>

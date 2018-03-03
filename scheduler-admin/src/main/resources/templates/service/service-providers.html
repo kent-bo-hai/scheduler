@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:layout="http://www.ultraq.net.nz/web/thymeleaf/layout"
+      layout:decorator="layouts/default">
+
+<head>
+    <title>服务提供者</title>
+</head>
+
+<div layout:fragment="content">
+
+    <style>
+
+        .ivu-tabs-tab {
+            font-size: 15px;
+            font-weight: 400;
+        }
+
+        .ivu-input-group-append {
+            color: #fff;
+            background-color: #2d8cf0;
+            border-color: #2d8cf0;
+            /*#2b85e4*/
+        }
+
+        .table-layout {
+            margin: 10px 0 0;
+        }
+
+        .statisticsClass {
+            border-width: 1px;
+            border-style: none solid solid none;
+            border-color: #5cadff;
+            -webkit-box-shadow: 0 0 5px;
+            -moz-box-shadow: 0 0 5px;
+            box-shadow: 0 0 5px;
+            margin: 5px;
+        }
+
+        [v-cloak] {
+            display: none !important;
+        }
+    </style>
+
+    <div id="service-providers-layout" v-cloak>
+        <div class="layout-search">
+            <span style="font-size: 16px; font-weight:500; margin-right: 10px">选择服务:</span>
+            <Auto-Complete
+                    v-model="appName"
+                    :data="appNames"
+                    icon="ios-search"
+                    @on-search="searchSuggest"
+                    @on-select="searchSelect"
+                    placeholder="appName、负责人、为空查询全部"
+                    clearable="true"
+                    style="width:600px" v-cloak>
+            </Auto-Complete>
+        </div>
+
+        <div class="tabs-layout">
+            <Tabs :value="tabName" @on-click="tabOnClick">
+                <tab-pane label="服务提供者" name="serviceProviders">
+                    <Row>
+                        <i-col span="3">
+                            类型:
+                            <button-group>
+                                <i-button type="primary">thrift</i-button>
+                                <i-button>http</i-button>
+                            </button-group>
+                        </i-col>
+
+                        <i-col span="4">
+                            环境:
+                            <button-group>
+                                <i-button type="primary">prod</i-button>
+                                <i-button>staging</i-button>
+                                <i-button>test</i-button>
+                            </button-group>
+                        </i-col>
+
+                        <i-col span="5">
+                            状态:
+                            <button-group>
+                                <i-button type="primary">所有</i-button>
+                                <i-button>正常</i-button>
+                                <i-button>禁用</i-button>
+                                <i-button>未启动</i-button>
+                            </button-group>
+                        </i-col>
+
+                        <i-col span="6">
+                            <i-input placeholder="主键,端口,状态等组合搜索, 以空格分隔"
+                                     style="width: 350px;">
+                                <i-button slot="append" icon="ios-search" type="primary"></i-button>
+                            </i-input>
+                        </i-col>
+
+                    </Row>
+
+                    <div class="table-layout">
+                        <row :gutter="25">
+                            <i-col span="12">
+                                <i-table class="statisticsClass"
+                                         :columns="[{title:'机房分布统计(机器数/节点数)', key:'x', align:'center'}]"
+                                         :data="serviceEngineRoomStatisticsData">
+                                </i-table>
+                            </i-col>
+                            <i-col span="12">
+                                <i-table class="statisticsClass" :columns="[{title:'节点状态统计', key:'x', align:'center'}]"
+                                         :data="serviceStatusStatisticsData">
+                                </i-table>
+                            </i-col>
+                        </row>
+                    </div>
+
+
+                    <div style="margin-top: 39px">
+
+                        <button-group>
+                            <i-button @click="nodeActives">主机</i-button>
+                            <i-button @click="nodeStandbys">备机</i-button>
+                        </button-group>
+
+                        <button-group style="margin-left: 10px;">
+                            <i-button @click="nodeEnables">启用</i-button>
+                            <i-button @click="nodeDisables">禁用</i-button>
+                            <!--<i-button>正常</i-button>-->
+                        </button-group>
+
+                        <i-button @click="nodeRemoves" style="margin-left: 10px;">删除</i-button>
+
+                        <span style="margin-left: 50px; font-size: 14px; font-weight: 500">
+                            每页节点数:
+                        </span>
+                        <radio-group v-model="pageSize" type="button" @on-change="pageSizeOnChange">
+                            <radio label="10"></radio>
+                            <radio label="20"></radio>
+                            <radio label="50"></radio>
+                            <radio label="100"></radio>
+                        </radio-group>
+
+                    </div>
+
+
+                    <div class="table-layout">
+                        <i-table ref="selection" :columns="serviceProvidersColumns" :data="serviceProvidersData"
+                                 :loading="serviceProvidersLoading" @on-selection-change="nodeOnSelectionChange">
+                        </i-table>
+                    </div>
+
+
+                    <div class="page-layout">
+                        <Page :current="pageNum" :page-size="pageSize" :total="total" show-total></Page>
+                    </div>
+                </tab-pane>
+
+                <tab-pane label="服务消费者" name="serviceConsumers">
+                </tab-pane>
+
+                <tab-pane label="服务详情" name="serviceInfo">
+                </tab-pane>
+
+                <tab-pane label="服务依赖" name="serviceDependency">
+                </tab-pane>
+
+                <tab-pane label="组件依赖" name="serviceComponentDependency">
+                </tab-pane>
+
+                <tab-pane label="事实日志" name="serviceRealTimeLog">
+
+                </tab-pane>
+            </Tabs>
+        </div>
+
+
+    </div>
+
+    <script>
+        header.navName = 'serviceProvidersNav';
+        var serviceProvidersVue = new Vue({
+            el: '#service-providers-layout',
+            data: {
+                appName: '',
+                appNames: [],
+
+                tabName: 'serviceProviders',
+
+                serviceType: '',
+                serviceEnv: '',
+                serviceStatus: '',
+
+                serviceEngineRoomStatisticsData: [],
+                serviceStatusStatisticsData: [],
+
+                serviceProvidersColumns: [
+                    {
+                        type: 'selection',
+                        width: 32,
+                        align: 'center'
+                    },
+                    {
+                        title: '主机名', key: 'host', width: 230, sortable: true,
+                    },
+                    {
+                        title: 'IP', key: 'ip', width: 150, sortable: true,
+                    },
+                    {
+                        title: '端口', key: 'port', width: 120, sortable: true,
+                    },
+                    {
+                        title: '角色',
+                        key: 'role',
+                        width: 150,
+                        sortable: true,
+                        render: function (h, params) {
+                            return h('div', [
+                                h('Button-group', {
+                                    props: {
+                                        size: 'small',
+                                    },
+                                }, [
+                                    h('Button', {
+                                        props: {
+                                            label: "主机",
+                                            width: 15,
+                                        },
+                                        domProps: {
+                                            name: 'enable'
+                                        },
+                                        style: {},
+                                        on: {
+                                            click: function () {
+                                                serviceProvidersVue.nodeActive(params.row.ip, params.row.port);
+                                            }
+                                        }
+                                    }, '主机'),
+                                    h('Button', {
+                                        props: {
+                                            type: "primary",
+                                            size: 'small',
+                                        },
+                                        domProps: {
+                                            name: 'disable'
+                                        },
+                                        style: {
+//                                            marginLeft: '5px'
+                                        },
+                                        on: {
+                                            click: function () {
+                                                serviceProvidersVue.nodeStandby(params.row.ip, params.row.port);
+                                            }
+                                        }
+                                    }, '备机'),
+                                ]),
+
+                            ]);
+                        }
+                    },
+                    {
+                        title: '版本号', key: 'version', sortable: true,
+                    },
+                    {
+                        title: '权重', key: 'weight', width: 100, sortable: true,
+                    },
+                    {
+                        title: '状态', key: 'statusDesc', width: 100, sortable: true,
+                    },
+                    {
+                        title: '更新时间', key: 'updateTimeDesc', width: 120, sortable: true, sortType: 'desc',
+                    },
+                    {
+                        title: '节点状态',
+                        key: 'nodeStatusOperating',
+                        width: 150,
+                        render: function (h, params) {
+                            return h('Button-group', {
+                                props: {
+                                    size: 'small',
+                                },
+                            }, [
+                                h('Button', {
+                                    props: {
+                                        type: "primary",
+//                                        size: 'small',
+                                    },
+                                    domProps: {
+                                        name: 'enable'
+                                    },
+                                    style: {},
+                                    on: {
+                                        click: function () {
+                                            serviceProvidersVue.nodeEnable(params.row.ip, params.row.port);
+                                        }
+                                    }
+                                }, '启用'),
+                                h('Button', {
+                                    props: {
+//                                        type: "primary",
+//                                        size: 'small',
+                                    },
+                                    domProps: {
+                                        name: 'disable'
+                                    },
+                                    style: {
+//                                        marginLeft: '5px'
+                                    },
+                                    on: {
+                                        click: function () {
+                                            serviceProvidersVue.nodeDisable(params.row.ip, params.row.port);
+                                        }
+                                    }
+                                }, '禁用'),
+                            ]);
+                        }
+                    },
+                    {
+                        title: '操作',
+                        key: 'operating',
+                        render: function (h, params) {
+                            return h('div', [
+                                h('Button', {
+                                    props: {
+                                        type: 'error',
+                                        size: 'small',
+                                    },
+                                    domProps: {
+                                        name: 'remove'
+                                    },
+                                    style: {
+                                        marginLeft: '5px'
+                                    },
+                                    on: {
+                                        click: function () {
+                                            serviceProvidersVue.nodeRemove(params.row.ip, params.row.port);
+                                        }
+                                    }
+                                }, '删除'),
+                            ]);
+                        }
+                    }],
+                serviceProvidersData: [],
+                serviceProvidersLoading: '',
+                selection: [],
+
+                pageNum: 1,
+                pageSize: 10,
+                total: 0,
+            },
+            mounted: function () {
+                this.$nextTick(function () {
+                    this.searchSelect('afa');
+                })
+            },
+            methods: {
+                // 查询
+                searchSuggest: _.debounce(
+                    function (appName) {
+                        var $this = this;
+                        axios.get('/api/suggest/ownerApp', {
+                            params: {
+                                appName: appName
+                            }
+                        }).then(function (response) {
+                            var apiResult = response.data;
+                            if (!apiResult.succ) {
+                                $this.$Message.warning(apiResult.msg);
+                            } else {
+                                var services = apiResult.data;
+                                // 渲染
+                                for (var i = 0; i < services.length; i++) {
+                                    $this.appNames[i] = services[i].name;
+                                }
+
+                            }
+
+                        }).catch(function (error) {
+                            console.error(error);
+                            $this.$Message.warning('查询未知异常.');
+                        });
+
+                    },
+                    // 这是我们为用户停止输入等待的毫秒数
+                    100
+                ),
+                searchSelect: function (appName) {
+                    if (!appName) {
+                        this.$Message.warning('请选择服务');
+                        return false;
+                    }
+                    const $this = this;
+                    this.serviceProvidersLoading = true;
+                    axios.get('/api/service/' + appName + '/providers', {
+                        timeout: 5000
+                    }).then(function (response) {
+                        const apiResult = response.data;
+                        if (!apiResult.succ) {
+                            $this.$Message.warning(apiResult.msg);
+                        } else {
+                            const pagination = apiResult.data;
+                            const serviceProviders = pagination.data;
+                            // 渲染
+                            // table
+                            $this.serviceProvidersData.length = 0;
+                            for (let i = 0; i < serviceProviders.length; i++) {
+                                let serviceProvider = serviceProviders[i];
+                                $this.serviceProvidersData.push(
+                                    {
+                                        host: serviceProvider.host,
+                                        ip: serviceProvider.ip,
+                                        port: serviceProvider.port,
+                                        version: serviceProvider.version,
+                                        weight: serviceProvider.weight,
+                                        statusDesc: serviceProvider.statusDesc,
+                                        updateTimeDesc: serviceProvider.updateTimeDesc
+                                    }
+                                );
+                            }
+                            // page
+                            $this.pageNum = pagination.pageNum;
+                            $this.total = pagination.total;
+                        }
+
+                        $this.serviceProvidersLoading = false;
+                    }).catch(function (error) {
+                        $this.serviceProvidersLoading = false;
+                        $this.$Message.warning('查询未知异常.');
+                    });
+
+                },
+
+                // tabs
+                tabOnClick: function (tabValue) {
+                    if (!this.appName) {
+                        this.$Message.warning('请选择服务.');
+//                        serviceProvidersVue.tabName = 'serviceProviders';
+//                        serviceProvidersVue.preventDefault();
+//                        return false;
+                    }
+                    switch (tabValue) {
+                        case 'serviceProviders':
+                            location.href = "/service/" + this.appName + "/providers";
+                            break;
+                        case 'serviceConsumers':
+                            location.href = "/service/" + this.appName + "/consumers";
+                            break;
+                        case 'serviceInfo':
+                            location.href = "/service/" + this.appName + "/info";
+                            break;
+                        case 'serviceDependency':
+                            location.href = "/service/" + this.appName + "/dependency";
+                            break;
+                        case 'serviceComponentDependency':
+                            location.href = "/service/" + this.appName + "/componentDependency";
+                            break;
+                        case 'serviceRealTimeLog':
+                            location.href = "/service/" + this.appName + "/realTimeLog";
+                            break;
+
+                        default:
+                            break;
+                    }
+                },
+
+
+                // table 操作
+                // table - 批量 操作
+                nodeOnSelectionChange: function (selection) {
+                    console.debug(serviceProvidersVue.selection);
+                    console.debug(selection);
+                    serviceProvidersVue.selection = selection;
+                },
+                pageSizeOnChange: function (pageSize) {
+                    console.debug(pageSize);
+                    console.debug(serviceProvidersVue.pageSize);
+
+                },
+                nodeActives: function () {
+                    console.debug('nodeActives start... ');
+                    console.debug(serviceProvidersVue.selection);
+                    for (let i = 0; i < serviceProvidersVue.selection.length; i++) {
+
+                    }
+                    console.debug('nodeActives end... ');
+                },
+                nodeStandbys: function () {
+
+                    console.log('nodeStandbys');
+                },
+                nodeEnables: function (ip, port) {
+                    console.log('nodeEnables');
+                },
+                nodeDisables: function (ip, port) {
+                    console.log('nodeDisables');
+                },
+                nodeRemoves: function (ip, port) {
+                    console.log('nodeRemoves');
+                },
+
+                // table - 单个 操作
+                nodeActive: function (ip, port) {
+                    console.log(ip + ":" + port);
+                },
+                nodeStandby: function (ip, port) {
+                    console.log(ip + ":" + port);
+                },
+                nodeEnable: function (ip, port) {
+                    console.log(ip + ":" + port);
+                },
+                nodeDisable: function (ip, port) {
+                    console.log(ip + ":" + port);
+                },
+                nodeRemove: function (ip, port) {
+                    console.log(ip + ":" + port);
+                },
+
+
+            }
+        });
+    </script>
+
+    <style>
+
+
+    </style>
+</div>
+
+</html>

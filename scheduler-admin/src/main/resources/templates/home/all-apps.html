@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:layout="http://www.ultraq.net.nz/web/thymeleaf/layout"
+      layout:decorate="home/home-layout">
+
+<head>
+    <title>首页</title>
+</head>
+
+<div layout:fragment="allServicesContent">
+    <div id="allServicesContent">
+        <i-table :columns="ownerAppsColumns" :data="ownerAppsData" stripe="true">
+        </i-table>
+
+    </div>
+
+    <script>
+        header.navName = 'allServicesNav';
+        var allAppsVue = new Vue({
+            el: '#allServicesContent',
+            data: {
+                // tab: ownerTab
+                ownerAppsColumns: [
+                    {
+                        title: 'appName',
+                        key: 'appName',
+                        render: function (h, params) {
+                            return h('div', [
+                                h('a', {
+                                    domProps: {
+                                        href: 'afafa'
+                                    }
+                                }, params.row.appName),
+                            ]);
+                        }
+                    },
+                    {
+                        title: '负责人', key: 'owner'
+                    },
+                    {
+                        title: '描述信息', key: 'desc'
+                    },
+                    {
+                        title: '操作',
+                        key: 'operating',
+                        render: (h, params) => {
+                            return h('div', [
+                                h('i-button', {
+                                    props: {
+                                        type: 'primary',
+                                        size: 'small',
+                                    },
+                                    domProps: {
+                                        name: 'edit'
+                                    },
+                                    on: {
+                                        'click.native': function () {
+                                            allAppsVue.show(params.index)
+                                        }
+                                    }
+                                }, '编辑'),
+                                h('Button', {
+                                    props: {
+                                        type: 'primary',
+                                        size: 'small',
+
+                                    },
+                                    domProps: {
+                                        name: 'detail'
+                                    },
+                                    style: {
+                                        marginLeft: '5px'
+                                    },
+                                    on: {
+                                        click: () => {
+                                            allAppsVue.remove(params.index)
+                                        }
+                                    }
+                                }, '详情'),
+                            ]);
+                        }
+
+                    }],
+                ownerAppsData: [
+                    {
+                        'appName': 'afaf', 'owner': 'afaf', 'desc': 'afaf',
+                    },
+                    {
+                        'appName': 'afaf', 'owner': 'afaf', 'desc': 'afaf'
+                    }
+                ],
+            },
+            created: function () {
+                console.log("allAppsVue created");
+            },
+            methods: {
+                // tab : ownerTab
+                show: function (index) {
+                    console.log("show : " + index);
+                    this.$Modal.info({
+                        title: '用户信息',
+                        content: `姓名：${this.ownerAppsData[index].appName}<br>年龄：${this.ownerAppsData[index].owner}<br>地址：${this.ownerAppsData[index].desc}`
+                    });
+                },
+                remove: function (index) {
+                    console.log("remove : " + index);
+                    this.ownerAppsData.splice(index, 1);
+                },
+            }
+        });
+    </script>
+
+    <style>
+        #attentionAppsContent {
+        }
+
+        .layout-tabs {
+            margin: 20px 0 0 0;
+        }
+
+    </style>
+</div>
+
+<div layout:fragment="appsScript">
+    <script>
+        homeLayoutVue.tabValue = 'allApps';
+    </script>
+</div>
+
+</html>
